@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KNG Admin — Training Operations Dashboard</title>
+<style>
+/* ── Design system ── */
+:root {
+  --bg: #0b0f1a;
+  --surface: #111827;
+  --surface2: #1a2235;
+  --border: rgba(255,255,255,.08);
+  --accent: #3b7cf6;
+  --accent2: #22d3a5;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --text: #f0f4ff;
+  --muted: #8898b8;
+  --radius: 14px;
+  --shadow: 0 8px 32px rgba(0,0,0,.45);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Mono', 'Courier New', monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap');
+
+/* Grid bg texture */
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image: linear-gradient(rgba(59,124,246,.03) 1px,transparent 1px),
+                    linear-gradient(90deg,rgba(59,124,246,.03) 1px,transparent 1px);
+  background-size: 40px 40px;
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ── Header ── */
+header {
+  position: relative;
+  z-index:10;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(17,24,39,.9);
+  backdrop-filter: blur(12px);
+}
+
+header img { width: 48px; height: 48px; object-fit: contain; }
+
+.header-title h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: var(--text);
+}
+.header-title p { color: var(--muted); font-size: .78rem; margin-top: 2px; }
+
+.header-badge {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 99px;
+  background: rgba(34,211,165,.1);
+  border: 1px solid rgba(34,211,165,.25);
+  font-size: .75rem;
+  color: var(--accent2);
+  font-weight: 500;
+}
+.pulse {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent2);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── Lock screen ── */
+#lockScreen {
+  position: fixed; inset:0; z-index:100;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+}
+.lock-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 40px;
+  width: min(420px, 90vw);
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.lock-icon { font-size: 2.5rem; margin-bottom: 16px; }
+.lock-card h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.lock-card p { color: var(--muted); font-size: .85rem; margin-bottom: 24px; line-height: 1.6; }
+#adminPin {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 1.1rem;
+  font-family: inherit;
+  letter-spacing: .25em;
+  text-align: center;
+  margin-bottom: 16px;
+  outline: none;
+  transition: border-color .2s;
+}
+#adminPin:focus { border-color: var(--accent); }
+#lockError { color: var(--danger); font-size: .82rem; margin-top: 8px; min-height: 18px; }
+
+/* ── Layout ── */
+.wrapper { position: relative; z-index:1; max-width: 1280px; margin: 0 auto; padding: 28px 28px 60px; }
+
+/* ── Tabs ── */
+.tabs {
+  display: flex; gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 28px;
+  overflow-x: auto;
+}
+.tab-btn {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: .82rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color .15s, border-color .15s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  margin-bottom: 20px;
+}
+.card h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: .95rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card h3 span { color: var(--muted); font-family: 'DM Mono', monospace; font-size:.8rem; font-weight:400; }
+
+/* ── Grid ── */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media(max-width:700px){
+  .grid2,.grid3 { grid-template-columns: 1fr; }
+}
+
+/* ── Form elements ── */
+label { display: block; font-size: .78rem; color: var(--muted); margin-bottom: 6px; font-weight:500; }
+input, textarea, select {
+  width: 100%;
+  padding: 10px 13px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: .85rem;
+  outline: none;
+  transition: border-color .2s;
+  margin-bottom: 14px;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 100px; }
+
+/* ── Buttons ── */
+.btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 9px;
+  font-family: inherit;
+  font-size: .83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.btn:hover { opacity: .85; }
+.btn:active { transform: scale(.98); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-success { background: var(--accent2); color: #111; }
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger { background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.3); color: var(--danger); }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+
+/* ── Code block ── */
+pre.code-block {
+  background: rgba(0,0,0,.4);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: .77rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--accent2);
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 10px;
+  line-height: 1.6;
+}
+
+/* ── Stats tiles ── */
+.stat-tile {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stat-tile .label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+.stat-tile .value { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; color: var(--text); }
+.stat-tile .sub { font-size: .75rem; color: var(--muted); }
+
+/* ── Table ── */
+.tbl-wrap { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .79rem;
+}
+th {
+  text-align: left;
+  padding: 8px 12px;
+  background: rgba(0,0,0,.3);
+  color: var(--muted);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  font-size: .7rem;
+  letter-spacing: .06em;
+}
+td {
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  color: var(--text);
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(59,124,246,.06); }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: .7rem;
+  font-weight: 600;
+}
+.badge-green { background: rgba(34,211,165,.15); color: var(--accent2); }
+.badge-red { background: rgba(239,68,68,.15); color: var(--danger); }
+.badge-yellow { background: rgba(245,158,11,.15); color: var(--warn); }
+
+/* ── Empty state ── */
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+  font-size: .85rem;
+}
+
+/* ── Toast ── */
+#toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 999;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: .82rem;
+  color: var(--text);
+  box-shadow: var(--shadow);
+  transform: translateY(60px);
+  opacity: 0;
+  transition: all .25s ease;
+  max-width: 300px;
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.toast-ok { border-color: rgba(34,211,165,.4); color: var(--accent2); }
+#toast.toast-err { border-color: rgba(239,68,68,.4); color: var(--danger); }
+
+/* ── Divider ── */
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+/* ── Progress bar ── */
+.prog-bar { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 3px; transition: width .4s; }
+
+/* ── Hash list pill ── */
+.hash-pill {
+  display: inline-block;
+  background: rgba(59,124,246,.1);
+  border: 1px solid rgba(59,124,246,.2);
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-size: .72rem;
+  color: var(--accent);
+  margin: 3px 3px 3px 0;
+  font-family: 'DM Mono', monospace;
+}
+.hash-pill .del {
+  margin-left: 6px;
+  cursor: pointer;
+  color: var(--muted);
+}
+.hash-pill .del:hover { color: var(--danger); }
+
+/* ── Change log ── */
+.log-entry {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: .8rem;
+}
+.log-entry:last-child { border-bottom: none; }
+.log-icon { font-size: 1rem; width: 22px; flex-shrink: 0; }
+.log-text { flex: 1; line-height: 1.5; }
+.log-time { color: var(--muted); font-size: .72rem; flex-shrink: 0; }
+
+/* ── Input with copy button ── */
+.input-copy { display: flex; gap: 8px; align-items: flex-start; }
+.input-copy input { margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<!-- Lock screen -->
+<div id="lockScreen">
+  <!-- Layer 1 denied: wrong/missing URL hash -->
+  <div class="lock-card" id="hashDenied" style="display:none;">
+    <div class="lock-icon">🚫</div>
+    <h2>Access Denied</h2>
+    <p style="font-size:.85rem;color:var(--muted);line-height:1.7;">This page is restricted to authorized managers.<br>If you believe you should have access, contact your KNG operations coordinator.</p>
+  </div>
+  <!-- Layer 2: correct hash present, now ask for PIN -->
+  <div class="lock-card" id="pinGate" style="display:none;">
+    <div class="lock-icon">🔐</div>
+    <h2>Admin Access</h2>
+    <p>Enter your admin PIN to continue.</p>
+    <input type="password" id="adminPin" placeholder="PIN" maxlength="20" autocomplete="off">
+    <br>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="tryUnlock()">Unlock Dashboard</button>
+    <div id="lockError"></div>
+  </div>
+</div>
+
+<!-- Main app (hidden until unlocked) -->
+<div id="app" style="display:none;">
+
+<header>
+  <!-- Embedded KNG logo (tiny inline version) -->
+  <svg width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="42" height="42" rx="10" fill="#16345f"/>
+    <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Syne,sans-serif" font-weight="800" font-size="18" fill="white">K</text>
+  </svg>
+  <div class="header-title">
+    <h1>KNG Training Admin</h1>
+    <p>Operations dashboard · V9</p>
+  </div>
+  <div class="header-badge">
+    <span class="pulse"></span>
+    Local-only mode
+  </div>
+</header>
+
+<div class="wrapper">
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('tab-codes')">⬡ Code Generator</button>
+  <button class="tab-btn" onclick="showTab('tab-hashes')">🔑 Hash Manager</button>
+  <button class="tab-btn" onclick="showTab('tab-stats')">📊 Completion Stats</button>
+  <button class="tab-btn" onclick="showTab('tab-log')">📋 Change Log</button>
+  <button class="tab-btn" onclick="showTab('tab-settings')">⚙️ Settings</button>
+</div>
+
+<!-- ═══════════════════════════ TAB: CODE GENERATOR ═══════════════════════════ -->
+<div id="tab-codes" class="tab-panel active">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3>Generate New Codes</h3>
+        <label>Region / market prefix</label>
+        <input id="genRegion" value="ATL" placeholder="ATL" autocorrect="off" autocapitalize="characters" autocomplete="off">
+        <label>Number of codes to generate</label>
+        <input id="genCount" type="number" min="1" max="500" value="10">
+        <label>Starting sequence number</label>
+        <input id="genStart" type="number" min="1" value="1">
+        <label>Optional: Paste roster (one collector per line: Name, ID, Email)</label>
+        <textarea id="genRoster" placeholder="Cintya Cedeno,FC-204,ccedeno@kngservices.com&#10;John Smith,FC-205,jsmith@kngservices.com"></textarea>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="generateCodes()">⚡ Generate</button>
+          <button class="btn btn-outline" onclick="clearGen()">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h3>Generated Assignment Roster <span id="rosterCount"></span></h3>
+        <div id="rosterTableWrap" class="tbl-wrap">
+          <div class="empty">Generate codes to populate the roster.</div>
+        </div>
+        <div class="btn-row" id="rosterActions" style="display:none;margin-top:14px;">
+          <button class="btn btn-success" onclick="downloadCSV()">⬇ Download CSV</button>
+          <button class="btn btn-outline" onclick="copyHashSnippet()">📋 Copy Hash Snippet</button>
+          <button class="btn btn-outline" onclick="downloadHashFile()">⬇ Download Hash File</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>SHA-256 Hash Snippet <span>ready to paste into training HTML</span></h3>
+        <pre id="hashOutput" class="code-block">Generate codes to see the hash list here.</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ TAB: HASH MANAGER ═══════════════════════════ -->
+<div id="tab-hashes" class="tab-panel">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3>Current Approved Hashes</h3>
+        <p style="font-size:.8rem;color:var(--muted);margin-bottom:14px;line-height:1.6;">
+          These are the SHA-256 hashes currently stored in this admin session. Paste your training HTML's <code style="color:var(--accent2)">VALID_CODE_HASHES</code> array here to manage it visually.
+        </p>
+        <label>Paste existing VALID_CODE_HASHES array (or individual hashes, one per line)</label>
+        <textarea id="hashImport" placeholder='["abc123...", "def456..."]&#10;or one hash per line' style="min-height:80px;"></textarea>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="importHashes()">Import</button>
+          <button class="btn btn-danger" onclick="clearHashes()">Clear All</button>
+        </div>
+        <div class="divider"></div>
+        <label>Add a single code to hash and add</label>
+        <div class="input-copy">
+          <input id="singleCode" placeholder="KNG-ATL-042" autocorrect="off" autocapitalize="characters" autocomplete="off" style="margin-bottom:0;">
+          <button class="btn btn-primary" onclick="addSingleHash()" style="flex-shrink:0;">Add</button>
+        </div>
+        <div class="divider"></div>
+        <div id="hashPillWrap" style="min-height:40px;"></div>
+        <div style="margin-top:14px;font-size:.75rem;color:var(--muted);" id="hashCount">No hashes loaded.</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h3>Export for Training File</h3>
+        <p style="font-size:.8rem;color:var(--muted);margin-bottom:10px;line-height:1.6;">
+          Copy this snippet and replace the <code style="color:var(--accent2)">const VALID_CODE_HASHES = [...]</code> line in your training HTML file, then save and re-deploy to GitHub Pages.
+        </p>
+        <pre id="exportHashSnippet" class="code-block">No hashes loaded yet.</pre>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn btn-success" onclick="copyExportSnippet()">📋 Copy Snippet</button>
+          <button class="btn btn-outline" onclick="downloadExportSnippet()">⬇ Download .js File</button>
+        </div>
+        <div class="divider"></div>
+        <h3 style="margin-top:4px;">Verify a Code</h3>
+        <label>Enter a code to check if its hash is in the current list</label>
+        <div class="input-copy">
+          <input id="verifyCode" placeholder="KNG-ATL-001" autocorrect="off" autocapitalize="characters" autocomplete="off" style="margin-bottom:0;">
+          <button class="btn btn-outline" onclick="verifyCode()" style="flex-shrink:0;">Check</button>
+        </div>
+        <div id="verifyResult" style="margin-top:10px;font-size:.82rem;min-height:20px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ TAB: COMPLETION STATS ═══════════════════════════ -->
+<div id="tab-stats" class="tab-panel">
+  <div class="card" style="margin-bottom:16px;">
+    <h3>Load Completion Data</h3>
+    <p style="font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:14px;">
+      Paste CSV exports from collectors (comma-separated, with header row), or drag &amp; drop multiple CSV files. Stats will aggregate across all loaded records.
+    </p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+      <div style="flex:1;min-width:220px;">
+        <label>Paste CSV data</label>
+        <textarea id="csvPaste" placeholder="collector_name,collector_id,work_email,training_code,..." style="min-height:72px;margin-bottom:0;"></textarea>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-primary" onclick="loadCSV()">📥 Load CSV</button>
+      <button class="btn btn-outline" onclick="clearStats()">Clear Stats</button>
+    </div>
+  </div>
+
+  <!-- Summary tiles -->
+  <div class="grid3" id="statTiles" style="margin-bottom:20px;">
+    <div class="stat-tile">
+      <div class="label">Total Records</div>
+      <div class="value" id="statTotal">—</div>
+      <div class="sub">individual module records</div>
+    </div>
+    <div class="stat-tile">
+      <div class="label">Unique Collectors</div>
+      <div class="value" id="statCollectors">—</div>
+      <div class="sub">distinct collector IDs</div>
+    </div>
+    <div class="stat-tile">
+      <div class="label">Fully Certified</div>
+      <div class="value" id="statCertified">—</div>
+      <div class="sub">all 6 modules passed</div>
+    </div>
+    <div class="stat-tile">
+      <div class="label">Avg Attempts</div>
+      <div class="value" id="statAttempts">—</div>
+      <div class="sub">per quiz per collector</div>
+    </div>
+    <div class="stat-tile">
+      <div class="label">Pass Rate</div>
+      <div class="value" id="statPassRate">—</div>
+      <div class="sub">overall module pass %</div>
+    </div>
+    <div class="stat-tile">
+      <div class="label">Regions</div>
+      <div class="value" id="statRegions">—</div>
+      <div class="sub">distinct code prefixes</div>
+    </div>
+  </div>
+
+  <!-- Module breakdown -->
+  <div class="card">
+    <h3>Module-by-Module Pass Rates</h3>
+    <div id="moduleChart">
+      <div class="empty">Load CSV data to see breakdown.</div>
+    </div>
+  </div>
+
+  <!-- Collector table -->
+  <div class="card">
+    <h3>Collector Completion Table <span id="tableSubtitle"></span></h3>
+    <div class="tbl-wrap" id="collectorTable">
+      <div class="empty">Load CSV data to see individual records.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ TAB: CHANGE LOG ═══════════════════════════ -->
+<div id="tab-log" class="tab-panel">
+  <div class="card">
+    <h3>Session Activity Log</h3>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:16px;">Actions taken during this admin session. Log resets on page refresh.</p>
+    <div id="logList">
+      <div class="empty">No actions recorded yet.</div>
+    </div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-danger" onclick="clearLog()">Clear Log</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ TAB: SETTINGS ═══════════════════════════ -->
+<div id="tab-settings" class="tab-panel">
+  <div class="grid2">
+    <div class="card">
+      <h3>Change Admin PIN</h3>
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:14px;line-height:1.6;">
+        The PIN is the <strong style="color:var(--text);">second layer</strong> of admin access, stored in <code style="color:var(--accent2)">localStorage</code> on this device. The first layer is the secret URL hash — both must be correct to unlock.<br><br>
+        To rotate the URL secret, change <code style="color:var(--accent2)">REQUIRED_HASH</code> in the source and distribute the new bookmark link.
+      </p>
+      <label>Current PIN</label>
+      <input type="password" id="curPin" autocomplete="off">
+      <label>New PIN (min 4 chars)</label>
+      <input type="password" id="newPin" autocomplete="new-password">
+      <label>Confirm New PIN</label>
+      <input type="password" id="confirmPin" autocomplete="new-password">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="changePin()">Update PIN</button>
+      </div>
+      <div id="pinMsg" style="margin-top:8px;font-size:.8rem;"></div>
+    </div>
+    <div class="card">
+      <h3>GitHub Pages Deploy Guide</h3>
+      <p style="font-size:.8rem;color:var(--muted);line-height:1.8;">
+        <strong style="color:var(--text);">1. Generate codes</strong> in the Code Generator tab.<br>
+        <strong style="color:var(--text);">2. Copy the hash snippet</strong> from the output.<br>
+        <strong style="color:var(--text);">3. Open</strong> <code style="color:var(--accent2)">kng_mms_training_v9.html</code> in a text editor.<br>
+        <strong style="color:var(--text);">4. Find</strong> <code style="color:var(--accent2)">const VALID_CODE_HASHES = [...]</code><br>
+        <strong style="color:var(--text);">5. Replace</strong> the entire array with the new snippet.<br>
+        <strong style="color:var(--text);">6. Commit &amp; push</strong> to your GitHub Pages repo.<br>
+        <strong style="color:var(--text);">7. Distribute codes</strong> to collectors via your roster CSV.
+      </p>
+      <div class="divider"></div>
+      <p style="font-size:.75rem;color:var(--muted);">
+        Repository: <code style="color:var(--accent2)">kngops/field-collector-training</code><br>
+        Training URL: <code style="color:var(--accent2)">kngops.github.io/field-collector-training/</code><br>
+        Admin bookmark: <code style="color:var(--accent2)">…/admin.html#kng-admin-2025</code>
+      </p>
+    </div>
+    <div class="card">
+      <h3>Data &amp; Privacy</h3>
+      <p style="font-size:.8rem;color:var(--muted);line-height:1.8;">
+        This admin dashboard is a <strong style="color:var(--text);">100% client-side, static HTML file</strong>. No data is ever sent to a server.<br><br>
+        <strong style="color:var(--text);">Auth layer 1 — URL hash:</strong> The secret in the bookmark URL is never sent to servers or indexed by search engines. Rotate it by updating <code style="color:var(--accent2)">REQUIRED_HASH</code> in the source.<br>
+        <strong style="color:var(--text);">Auth layer 2 — PIN:</strong> Stored in <code style="color:var(--accent2)">localStorage</code> on this device only. Change it above at any time.
+      </p>
+      <div class="divider"></div>
+      <div class="btn-row">
+        <button class="btn btn-danger" onclick="nukeLocal()">⚠ Wipe All Local Storage</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrapper -->
+</div><!-- /app -->
+
+<div id="toast"></div>
+
+<script>
+// ──────────────────────────────────────────────
+// CONSTANTS & STATE
+// ──────────────────────────────────────────────
+const ADMIN_PIN_KEY = 'kng_admin_pin';
+const HASHES_KEY    = 'kng_admin_hashes';
+const DEFAULT_PIN   = 'kng-admin-2025';   // fallback if no PIN set in localStorage yet
+
+// ── Layer 1: URL-fragment gate ─────────────────
+// The secret hash must be present in the URL for the PIN form to appear.
+// Example bookmark: admin.html#kng-admin-2025
+// Change REQUIRED_HASH to rotate the secret; distribute new bookmark URL.
+// The fragment is never sent to servers or indexed by search engines.
+const REQUIRED_HASH = 'kng-admin-2025';
+
+let generatedRows = [];
+let currentHashes = loadStoredHashes();
+let activityLog   = [];
+let statsData     = [];
+
+// ──────────────────────────────────────────────
+// TWO-LAYER GATE — runs on page load
+// ──────────────────────────────────────────────
+(function initGate() {
+  const fragment = (window.location.hash || '').replace(/^#/, '');
+  if (fragment !== REQUIRED_HASH) {
+    // Wrong or missing hash — show denied screen, hide everything else
+    document.getElementById('hashDenied').style.display = '';
+    // Remove the hash from the page title so tab gives nothing away
+    document.title = 'KNG Field Operations';
+  } else {
+    // Correct hash — show PIN form
+    document.getElementById('pinGate').style.display = '';
+    document.getElementById('adminPin').focus();
+  }
+})();
+
+// ── Layer 2: PIN gate ─────────────────────────
+function getPin() { return localStorage.getItem(ADMIN_PIN_KEY) || DEFAULT_PIN; }
+
+function tryUnlock() {
+  const pin = document.getElementById('adminPin').value;
+  if (pin === getPin()) {
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    renderHashPills();
+    renderExportSnippet();
+    logEvent('🔓', 'Admin session started');
+  } else {
+    document.getElementById('lockError').textContent = 'Incorrect PIN. Try again.';
+    document.getElementById('adminPin').value = '';
+    setTimeout(() => document.getElementById('lockError').textContent = '', 3000);
+  }
+}
+document.getElementById('adminPin').addEventListener('keydown', e => {
+  if (e.key === 'Enter') tryUnlock();
+});
+
+// ──────────────────────────────────────────────
+// TABS
+// ──────────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ──────────────────────────────────────────────
+// SHA-256
+// ──────────────────────────────────────────────
+async function sha256Hex(input) {
+  const bytes  = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ──────────────────────────────────────────────
+// CODE GENERATOR
+// ──────────────────────────────────────────────
+async function generateCodes() {
+  const region = (document.getElementById('genRegion').value||'').trim().toUpperCase() || 'KNG';
+  const count  = Math.max(1, Math.min(500, parseInt(document.getElementById('genCount').value)||10));
+  const start  = Math.max(1, parseInt(document.getElementById('genStart').value)||1);
+  const roster = document.getElementById('genRoster').value.split(/\n+/).map(x=>x.trim()).filter(Boolean);
+  const total  = Math.max(count, roster.length);
+  const rows   = [];
+  for (let i = 0; i < total; i++) {
+    const seq  = String(start + i).padStart(3,'0');
+    const code = `KNG-${region}-${seq}`;
+    let name='', id='', email='';
+    if (roster[i]) {
+      const p = roster[i].split(',').map(s=>s.trim());
+      [name,id,email] = [p[0]||'',p[1]||'',p[2]||''];
+    }
+    rows.push({ name, id, email, code });
+  }
+  generatedRows = rows;
+
+  // Compute hashes
+  const hashes = await Promise.all(rows.map(r => sha256Hex(r.code)));
+  rows.forEach((r,i) => r.hash = hashes[i]);
+
+  // Render table
+  renderRosterTable(rows);
+
+  // Render hash snippet
+  document.getElementById('hashOutput').textContent =
+    'const VALID_CODE_HASHES = ' + JSON.stringify(hashes, null, 2) + ';';
+
+  document.getElementById('rosterCount').textContent = `(${rows.length})`;
+  document.getElementById('rosterActions').style.display = 'flex';
+  logEvent('⚡', `Generated ${rows.length} codes for region ${region}`);
+  toast('Generated ' + rows.length + ' codes', 'ok');
+}
+
+function renderRosterTable(rows) {
+  if (!rows.length) {
+    document.getElementById('rosterTableWrap').innerHTML = '<div class="empty">No rows.</div>';
+    return;
+  }
+  const html = `<table>
+    <thead><tr><th>#</th><th>Code</th><th>Name</th><th>Employee ID</th><th>Work Email</th></tr></thead>
+    <tbody>${rows.map((r,i) => `<tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td><code style="color:var(--accent2)">${esc(r.code)}</code></td>
+      <td>${esc(r.name)||'<span style="color:var(--muted)">—</span>'}</td>
+      <td>${esc(r.id)||'<span style="color:var(--muted)">—</span>'}</td>
+      <td>${esc(r.email)||'<span style="color:var(--muted)">—</span>'}</td>
+    </tr>`).join('')}</tbody></table>`;
+  document.getElementById('rosterTableWrap').innerHTML = html;
+}
+
+function clearGen() {
+  generatedRows = [];
+  document.getElementById('genRoster').value = '';
+  document.getElementById('rosterTableWrap').innerHTML = '<div class="empty">Generate codes to populate the roster.</div>';
+  document.getElementById('hashOutput').textContent = 'Generate codes to see the hash list here.';
+  document.getElementById('rosterCount').textContent = '';
+  document.getElementById('rosterActions').style.display = 'none';
+}
+
+function downloadCSV() {
+  if (!generatedRows.length) { toast('No rows to download','err'); return; }
+  const headers = ['training_code','name','collector_id','work_email','code_hash'];
+  const lines   = [headers.join(',')];
+  generatedRows.forEach(r => {
+    lines.push([r.code,r.name,r.id,r.email,r.hash].map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(','));
+  });
+  dl('kng_manager_assignment_roster.csv', lines.join('\n'), 'text/csv');
+  logEvent('⬇', `Downloaded assignment roster CSV (${generatedRows.length} rows)`);
+  toast('CSV downloaded','ok');
+}
+
+function copyHashSnippet() {
+  const text = document.getElementById('hashOutput').textContent;
+  navigator.clipboard.writeText(text).then(()=>{ toast('Hash snippet copied!','ok'); logEvent('📋','Copied hash snippet'); });
+}
+
+function downloadHashFile() {
+  const text = document.getElementById('hashOutput').textContent;
+  dl('kng_valid_code_hashes.js', text, 'text/plain');
+  logEvent('⬇','Downloaded hash snippet file');
+  toast('Hash file downloaded','ok');
+}
+
+// ──────────────────────────────────────────────
+// HASH MANAGER
+// ──────────────────────────────────────────────
+function loadStoredHashes() {
+  try {
+    const raw = localStorage.getItem(HASHES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveStoredHashes() {
+  localStorage.setItem(HASHES_KEY, JSON.stringify(currentHashes));
+}
+
+async function importHashes() {
+  const raw = document.getElementById('hashImport').value.trim();
+  if (!raw) { toast('Paste some hashes first','err'); return; }
+  let parsed = [];
+  try {
+    // Try JSON array first
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) parsed = arr.map(h => String(h).toLowerCase().trim()).filter(h => /^[0-9a-f]{64}$/.test(h));
+  } catch {
+    // Try line-by-line (strip JS array syntax)
+    parsed = raw.replace(/[\[\]"']/g,'').split(/[\n,]+/).map(h=>h.trim().toLowerCase()).filter(h => /^[0-9a-f]{64}$/.test(h));
+  }
+  if (!parsed.length) { toast('No valid hashes found','err'); return; }
+  const before = currentHashes.length;
+  parsed.forEach(h => { if (!currentHashes.includes(h)) currentHashes.push(h); });
+  saveStoredHashes();
+  renderHashPills();
+  renderExportSnippet();
+  document.getElementById('hashImport').value = '';
+  const added = currentHashes.length - before;
+  logEvent('📥', `Imported ${added} new hash(es), total: ${currentHashes.length}`);
+  toast(`Imported ${added} hash(es)`, 'ok');
+}
+
+async function addSingleHash() {
+  const code = document.getElementById('singleCode').value.trim().toUpperCase();
+  if (!code) { toast('Enter a code','err'); return; }
+  const hash = await sha256Hex(code);
+  if (currentHashes.includes(hash)) { toast('Already in list','err'); return; }
+  currentHashes.push(hash);
+  saveStoredHashes();
+  renderHashPills();
+  renderExportSnippet();
+  document.getElementById('singleCode').value = '';
+  logEvent('➕', `Added hash for code: ${code}`);
+  toast(`Added hash for ${code}`, 'ok');
+}
+
+function removeHash(hash) {
+  currentHashes = currentHashes.filter(h => h !== hash);
+  saveStoredHashes();
+  renderHashPills();
+  renderExportSnippet();
+  logEvent('🗑', `Removed 1 hash, total: ${currentHashes.length}`);
+}
+
+function clearHashes() {
+  if (!confirm(`Clear all ${currentHashes.length} hashes? This cannot be undone.`)) return;
+  currentHashes = [];
+  saveStoredHashes();
+  renderHashPills();
+  renderExportSnippet();
+  logEvent('🗑', 'Cleared all hashes');
+  toast('All hashes cleared','ok');
+}
+
+function renderHashPills() {
+  const wrap = document.getElementById('hashPillWrap');
+  if (!currentHashes.length) {
+    wrap.innerHTML = '<span style="color:var(--muted);font-size:.78rem;">No hashes loaded.</span>';
+    document.getElementById('hashCount').textContent = 'No hashes loaded.';
+    return;
+  }
+  wrap.innerHTML = currentHashes.map(h =>
+    `<span class="hash-pill">${h.slice(0,10)}… <span class="del" onclick="removeHash('${h}')">✕</span></span>`
+  ).join('');
+  document.getElementById('hashCount').textContent = `${currentHashes.length} hash(es) loaded.`;
+}
+
+function renderExportSnippet() {
+  const el = document.getElementById('exportHashSnippet');
+  if (!currentHashes.length) {
+    el.textContent = 'No hashes loaded yet.';
+    return;
+  }
+  el.textContent = 'const VALID_CODE_HASHES = ' + JSON.stringify(currentHashes, null, 2) + ';';
+}
+
+function copyExportSnippet() {
+  const text = document.getElementById('exportHashSnippet').textContent;
+  navigator.clipboard.writeText(text).then(()=>{ toast('Snippet copied!','ok'); logEvent('📋','Copied export hash snippet'); });
+}
+
+function downloadExportSnippet() {
+  dl('kng_valid_code_hashes.js', document.getElementById('exportHashSnippet').textContent, 'text/plain');
+  logEvent('⬇','Downloaded export hash snippet');
+  toast('Downloaded','ok');
+}
+
+async function verifyCode() {
+  const code = document.getElementById('verifyCode').value.trim().toUpperCase();
+  if (!code) { toast('Enter a code','err'); return; }
+  const hash = await sha256Hex(code);
+  const found = currentHashes.includes(hash);
+  const el = document.getElementById('verifyResult');
+  el.innerHTML = found
+    ? `<span style="color:var(--accent2)">✓ <strong>${code}</strong> is APPROVED (hash matches)</span>`
+    : `<span style="color:var(--danger)">✗ <strong>${code}</strong> is NOT in the approved list</span>`;
+  logEvent('🔍', `Verified code: ${code} → ${found?'APPROVED':'NOT FOUND'}`);
+}
+
+// ──────────────────────────────────────────────
+// COMPLETION STATS
+// ──────────────────────────────────────────────
+function loadCSV() {
+  const raw = document.getElementById('csvPaste').value.trim();
+  if (!raw) { toast('Paste CSV data first','err'); return; }
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length < 2) { toast('CSV needs a header + at least 1 row','err'); return; }
+  const headers = parseCSVLine(lines[0]);
+  const idx = h => headers.findIndex(x => x.toLowerCase() === h.toLowerCase());
+  const rows = [];
+  for (let i=1; i<lines.length; i++) {
+    const vals = parseCSVLine(lines[i]);
+    if (vals.length < 4) continue;
+    rows.push({
+      collector_name:  vals[idx('collector_name')]  || '',
+      collector_id:    vals[idx('collector_id')]    || '',
+      work_email:      vals[idx('work_email')]      || '',
+      training_code:   vals[idx('training_code')]   || '',
+      module_id:       parseInt(vals[idx('module_id')]) || 0,
+      module_title:    vals[idx('module_title')]    || '',
+      passed:          (vals[idx('passed')]||'').toLowerCase() === 'yes',
+      attempts:        parseInt(vals[idx('attempts')]) || 1,
+      completed_at:    vals[idx('completed_at')]    || '',
+    });
+  }
+  if (!rows.length) { toast('No valid rows parsed','err'); return; }
+  statsData = statsData.concat(rows);
+  document.getElementById('csvPaste').value = '';
+  renderStats();
+  logEvent('📥', `Loaded ${rows.length} CSV rows (${statsData.length} total)`);
+  toast(`Loaded ${rows.length} rows`, 'ok');
+}
+
+function parseCSVLine(line) {
+  const result=[]; let cur=''; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){inQ=!inQ;}
+    else if(c===','&&!inQ){result.push(cur.trim());cur='';}
+    else{cur+=c;}
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function renderStats() {
+  const data = statsData;
+  if (!data.length) { return; }
+
+  const collectorIds = [...new Set(data.map(r=>r.collector_id))];
+  const passed       = data.filter(r=>r.passed);
+
+  // Certified = collector who passed all 6 modules
+  const certifiedCount = collectorIds.filter(id => {
+    const crows = data.filter(r=>r.collector_id===id);
+    const passedMods = new Set(crows.filter(r=>r.passed).map(r=>r.module_id));
+    return passedMods.size >= 6;
+  }).length;
+
+  const avgAttempts = data.length ? (data.reduce((s,r)=>s+r.attempts,0)/data.length).toFixed(1) : '—';
+  const passRate    = data.length ? Math.round(passed.length/data.length*100)+'%' : '—';
+
+  // Regions from training codes like KNG-ATL-001
+  const regions = [...new Set(data.map(r=>{const p=(r.training_code||'').split('-');return p.length>=2?p[1]:'?'}))];
+
+  document.getElementById('statTotal').textContent      = data.length;
+  document.getElementById('statCollectors').textContent = collectorIds.length;
+  document.getElementById('statCertified').textContent  = certifiedCount;
+  document.getElementById('statAttempts').textContent   = avgAttempts;
+  document.getElementById('statPassRate').textContent   = passRate;
+  document.getElementById('statRegions').textContent    = regions.length;
+
+  // Module chart
+  const modules = [1,2,3,4,5,6];
+  const chartHTML = modules.map(mid => {
+    const mRows = data.filter(r=>r.module_id===mid);
+    const mPass = mRows.filter(r=>r.passed).length;
+    const pct   = mRows.length ? Math.round(mPass/mRows.length*100) : 0;
+    const title = mRows.length ? (mRows[0].module_title || `Module ${mid}`) : `Module ${mid}`;
+    return `<div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:.78rem;">
+        <span><strong>M${mid}</strong> — ${esc(title)}</span>
+        <span style="color:var(--muted)">${mPass}/${mRows.length} · <strong style="color:${pct===100?'var(--accent2)':pct>=75?'var(--warn)':'var(--danger)'}">${pct}%</strong></span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${pct===100?'var(--accent2)':pct>=75?'var(--warn)':'var(--danger)'}"></div></div>
+    </div>`;
+  }).join('');
+  document.getElementById('moduleChart').innerHTML = chartHTML;
+
+  // Collector table
+  document.getElementById('tableSubtitle').textContent = `(${collectorIds.length} collectors)`;
+  const tableHTML = `<table>
+    <thead><tr><th>Name</th><th>Collector ID</th><th>Email</th><th>Training Code</th><th>Region</th><th>Modules Passed</th><th>Status</th><th>Completed</th></tr></thead>
+    <tbody>${collectorIds.map(id => {
+      const crows    = data.filter(r=>r.collector_id===id);
+      const first    = crows[0];
+      const passedN  = new Set(crows.filter(r=>r.passed).map(r=>r.module_id)).size;
+      const done     = passedN >= 6;
+      const region   = (first.training_code||'').split('-')[1] || '?';
+      const compDate = crows.reduce((latest,r)=>r.completed_at>latest?r.completed_at:latest,'');
+      return `<tr>
+        <td>${esc(first.collector_name||'—')}</td>
+        <td><code style="color:var(--accent)">${esc(id)}</code></td>
+        <td style="color:var(--muted)">${esc(first.work_email||'—')}</td>
+        <td><code style="color:var(--accent2)">${esc(first.training_code||'—')}</code></td>
+        <td><span class="badge badge-yellow">${esc(region)}</span></td>
+        <td><strong>${passedN}</strong>/6</td>
+        <td><span class="badge ${done?'badge-green':'badge-red'}">${done?'Certified':'Incomplete'}</span></td>
+        <td style="color:var(--muted);font-size:.73rem;">${compDate?new Date(compDate).toLocaleDateString():'—'}</td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+  document.getElementById('collectorTable').innerHTML = tableHTML;
+}
+
+function clearStats() {
+  statsData = [];
+  document.getElementById('statTotal').textContent = '—';
+  document.getElementById('statCollectors').textContent = '—';
+  document.getElementById('statCertified').textContent = '—';
+  document.getElementById('statAttempts').textContent = '—';
+  document.getElementById('statPassRate').textContent = '—';
+  document.getElementById('statRegions').textContent = '—';
+  document.getElementById('moduleChart').innerHTML = '<div class="empty">Load CSV data to see breakdown.</div>';
+  document.getElementById('collectorTable').innerHTML = '<div class="empty">Load CSV data to see individual records.</div>';
+  document.getElementById('tableSubtitle').textContent = '';
+  logEvent('🗑', 'Cleared stats data');
+}
+
+// ──────────────────────────────────────────────
+// ACTIVITY LOG
+// ──────────────────────────────────────────────
+function logEvent(icon, text) {
+  activityLog.unshift({ icon, text, time: new Date() });
+  renderLog();
+}
+
+function renderLog() {
+  const el = document.getElementById('logList');
+  if (!activityLog.length) { el.innerHTML = '<div class="empty">No actions recorded yet.</div>'; return; }
+  el.innerHTML = activityLog.map(e =>
+    `<div class="log-entry">
+      <span class="log-icon">${e.icon}</span>
+      <span class="log-text">${esc(e.text)}</span>
+      <span class="log-time">${e.time.toLocaleTimeString()}</span>
+    </div>`
+  ).join('');
+}
+
+function clearLog() {
+  activityLog = [];
+  renderLog();
+}
+
+// ──────────────────────────────────────────────
+// SETTINGS
+// ──────────────────────────────────────────────
+function changePin() {
+  const cur     = document.getElementById('curPin').value;
+  const next    = document.getElementById('newPin').value;
+  const confirm = document.getElementById('confirmPin').value;
+  const msg     = document.getElementById('pinMsg');
+  if (cur !== getPin())       { msg.style.color='var(--danger)'; msg.textContent='Current PIN incorrect.'; return; }
+  if (next.length < 4)        { msg.style.color='var(--danger)'; msg.textContent='New PIN must be at least 4 characters.'; return; }
+  if (next !== confirm)       { msg.style.color='var(--danger)'; msg.textContent='New PINs do not match.'; return; }
+  localStorage.setItem(ADMIN_PIN_KEY, next);
+  document.getElementById('curPin').value='';
+  document.getElementById('newPin').value='';
+  document.getElementById('confirmPin').value='';
+  msg.style.color='var(--accent2)';
+  msg.textContent='PIN updated successfully.';
+  logEvent('🔑', 'Admin PIN changed');
+  setTimeout(()=>msg.textContent='',4000);
+}
+
+function nukeLocal() {
+  if (!confirm('⚠ This will delete all local admin data (PIN, hashes) on this device. Continue?')) return;
+  localStorage.removeItem(ADMIN_PIN_KEY);
+  localStorage.removeItem(HASHES_KEY);
+  toast('Local storage cleared. Refreshing…','ok');
+  setTimeout(()=>location.reload(), 1500);
+}
+
+// ──────────────────────────────────────────────
+// UTILITIES
+// ──────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function dl(name, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+}
+
+let toastTimer;
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show toast-' + (type||'ok');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2800);
+}
+</script>
+</body>
+</html>
